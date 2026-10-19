@@ -11,34 +11,16 @@
 </head>
 <body>
   <main class="page-shell">
-    <header class="masthead">
-      <a class="brand" href="#game" aria-label="跑酷首頁">
-        <span class="brand-mark" aria-hidden="true">跑</span>
-        <span class="brand-name">跑<b>酷</b></span>
-      </a>
-      <div class="system-status"><span class="status-light"></span> 城市連線 <b>在線</b></div>
-    </header>
-
     <section class="game-section" id="game" aria-label="跑酷遊戲">
       <div class="section-heading">
-        <div>
-          <p class="eyebrow">無盡都會 / 第 08 區</p>
-          <h1>跑酷</h1>
-        </div>
-        <div class="build-tag">街機 <i>///</i> 01</div>
+        <h1>跑酷</h1>
       </div>
 
       <div class="game-frame">
-        <div class="game-topline" aria-hidden="true">
-          <span><i></i> 即時訊號</span>
-          <span>新都會 // 2096</span>
-          <span>系統 <b>00:08</b></span>
-        </div>
         <div class="canvas-wrap">
           <canvas id="game-canvas" width="800" height="300" aria-label="跑酷遊戲畫面" role="img">
             您的瀏覽器不支援 Canvas 畫布。
           </canvas>
-          <div class="scan-overlay" aria-hidden="true"></div>
 
           <div class="scoreboard" aria-live="polite">
             <div><span>分數</span><strong id="score-value">000000</strong></div>
@@ -47,35 +29,31 @@
 
           <section class="game-overlay start-overlay" id="start-overlay" aria-labelledby="start-title">
             <div class="overlay-panel">
-              <p class="overlay-kicker"><span></span> 系統就緒</p>
+              <p class="overlay-kicker">準備好了嗎？</p>
               <h2 id="start-title">跑酷</h2>
-              <p class="overlay-copy">穿梭電光城市，避開迎面而來的訊號障礙。</p>
-              <div class="control-guide" aria-label="操作說明">
-                <p class="guide-label">電腦操作 <span>玩家 01</span></p>
-                <div class="control-row"><kbd>空白鍵</kbd><span>跳躍</span></div>
-                <div class="control-row"><kbd>↓</kbd><span>下蹲</span></div>
-                <div class="control-row"><kbd>→</kbd><span>射擊</span></div>
-                <div class="control-row"><kbd>空白鍵 × 2</kbd><span>二段跳</span></div>
-              </div>
+              <p class="overlay-copy">空白鍵跳躍・↓ 下蹲・→ 射擊・空白鍵連按二段跳</p>
               <p class="start-prompt"><span class="prompt-key">空白鍵</span> 開始遊戲 <span class="prompt-line"></span></p>
             </div>
           </section>
 
           <section class="game-overlay gameover-overlay is-hidden" id="gameover-overlay" aria-labelledby="gameover-title" aria-hidden="true">
             <div class="overlay-panel gameover-panel">
-              <p class="overlay-kicker danger-kicker"><span></span> 任務結束</p>
-              <h2 id="gameover-title">死亡</h2>
+              <p class="overlay-kicker danger-kicker">任務結束</p>
+              <svg class="dead-food" viewBox="0 0 120 80" role="img" aria-label="盤子上的豬腳">
+                <ellipse cx="60" cy="66" rx="47" ry="10" fill="#d8e2eb"/>
+                <ellipse cx="60" cy="63" rx="47" ry="10" fill="#f7f9fc" stroke="#a9bed0" stroke-width="2"/>
+                <ellipse cx="60" cy="63" rx="37" ry="6" fill="none" stroke="#d4e1eb" stroke-width="2"/>
+                <path d="M43 48 25 34" fill="none" stroke="#f4e4d5" stroke-linecap="round" stroke-width="9"/>
+                <circle cx="22" cy="31" r="6" fill="#fff3e6"/>
+                <circle cx="29" cy="36" r="6" fill="#fff3e6"/>
+                <path d="M41 45c-4-15 6-26 19-23 14-5 25 7 21 20-2 12-14 19-27 16-7-1-11-6-13-13Z" fill="#d76b70" stroke="#9e404b" stroke-width="2"/>
+                <path d="M52 31c6-5 12-5 17-2" fill="none" stroke="#f4a39a" stroke-linecap="round" stroke-width="3"/>
+              </svg>
+              <h2 id="gameover-title">豬腳上桌</h2>
               <div class="result-line"><span>本次分數</span><strong id="final-score">000000</strong></div>
-              <div class="result-line"><span>最高紀錄</span><strong id="final-high-score">000000</strong></div>
               <button class="restart-button" id="restart-button" type="button"><span aria-hidden="true">↻</span> 重新開始</button>
-              <p class="start-prompt"><span class="prompt-key">空白鍵</span> 重新開始</p>
             </div>
           </section>
-        </div>
-        <div class="game-bottomline" aria-hidden="true">
-          <span>跑者 <b>出發</b></span>
-          <span>閃避障礙 <i>•</i> 持續前進</span>
-          <span>800 <i>×</i> 300</span>
         </div>
       </div>
 
@@ -84,13 +62,7 @@
         <button class="touch-button duck-button" id="touch-duck" type="button"><span aria-hidden="true">↓</span> 下蹲</button>
         <button class="touch-button shoot-button" id="touch-shoot" type="button"><span aria-hidden="true">→</span> 射擊</button>
       </div>
-      <p class="under-note"><span>01</span> 別停下來，這座城市不會等你。</p>
     </section>
-
-    <footer class="page-footer">
-      <span>跑酷 <b>///</b> 獨立街機遊戲</span>
-      <span>保持訊號暢通。</span>
-    </footer>
   </main>
 </body>
 </html>

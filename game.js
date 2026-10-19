@@ -6,6 +6,8 @@
   const GROUND_Y = 244;
   const DOUBLE_JUMP_TIME = 250;
   const DOUBLE_JUMP_INVULNERABILITY_SECONDS = 0.5;
+  const PLAYER_ANIMATION_FRAME_COUNT = 4;
+  const PLAYER_ANIMATION_FRAME_DURATION = 0.09;
   const MAX_SPEED = 540;
   const COLORS = {
     background: '#050816',
@@ -161,10 +163,13 @@
       this.sound = sound;
       this.x = 94;
       this.groundY = GROUND_Y;
-      this.width = 47;
-      this.standHeight = 48;
+      this.width = 52;
+      this.standHeight = 45;
       this.duckHeight = 30;
       this.height = this.standHeight;
+      this.sprite = new Image();
+      this.sprite.onerror = () => console.error('Unable to load player sprite: 10-poses.png');
+      this.sprite.src = '10-poses.png';
       this.vy = 0;
       this.gravity = 1550;
       this.jumpVelocity = -590;
@@ -175,6 +180,7 @@
       this.isCrouching = false;
       this.runTime = 0;
       this.isGrounded = true;
+      this.isDead = false;
     }
 
     get isInvulnerable() {
@@ -216,7 +222,7 @@
       this.hasDoubleJumped = true;
       this.invulnerabilityTime = DOUBLE_JUMP_INVULNERABILITY_SECONDS;
       this.sound.doubleJump();
-      this.particles.emit(this.x + this.width / 2, this.groundY - this.height / 2, COLORS.magenta, 12, 190);
+      this.particles.emit(this.x + this.width / 2, this.groundY - this.height / 2, COLORS.white, 12, 190);
       return true;
     }
 
@@ -239,160 +245,96 @@
     }
 
     draw(context) {
+      if (this.isDead) {
+        this.drawPorkLeg(context);
+        return;
+      }
+
       const bob = this.isGrounded && !this.isCrouching ? Math.sin(this.runTime * 17) * 2.2 : 0;
       const bodyHeight = this.height;
       const top = this.groundY - bodyHeight + bob;
-      const crouching = this.isCrouching;
-      const stride = Math.sin(this.runTime * 18) * 8;
 
       context.save();
-      context.lineJoin = 'round';
-      context.lineCap = 'round';
       if (this.invulnerabilityTime > 0) {
         context.save();
         context.globalAlpha = .55 + Math.sin(this.runTime * 18) * .2;
         context.strokeStyle = COLORS.cyan;
+        context.fillStyle = 'rgba(0, 246, 255, .1)';
         context.shadowColor = COLORS.cyan;
         context.shadowBlur = 20;
         context.lineWidth = 2;
+        const centerX = this.x + this.width / 2;
+        const centerY = this.groundY - bodyHeight / 2 + bob;
         context.beginPath();
-        context.ellipse(this.x + this.width / 2, this.groundY - bodyHeight / 2 + bob, this.width * .72, bodyHeight * .68, 0, 0, Math.PI * 2);
+        context.moveTo(centerX - 31, centerY + 16);
+        context.bezierCurveTo(centerX - 44, centerY + 14, centerX - 45, centerY - 3, centerX - 32, centerY - 8);
+        context.bezierCurveTo(centerX - 36, centerY - 25, centerX - 15, centerY - 31, centerX - 5, centerY - 18);
+        context.bezierCurveTo(centerX + 2, centerY - 37, centerX + 28, centerY - 33, centerX + 31, centerY - 13);
+        context.bezierCurveTo(centerX + 49, centerY - 13, centerX + 49, centerY + 11, centerX + 34, centerY + 17);
+        context.bezierCurveTo(centerX + 25, centerY + 32, centerX + 5, centerY + 31, centerX - 4, centerY + 23);
+        context.bezierCurveTo(centerX - 16, centerY + 32, centerX - 33, centerY + 29, centerX - 31, centerY + 16);
+        context.closePath();
+        context.fill();
         context.stroke();
         context.restore();
       }
-      context.shadowBlur = 12;
-      context.shadowColor = '#f2f7ff';
-
-      context.strokeStyle = '#dce5f2';
-      context.lineWidth = 3;
-      context.beginPath();
-      context.moveTo(this.x + 9, top + (crouching ? 17 : 30));
-      context.bezierCurveTo(this.x + 1, top + 29, this.x - 6, top + 24 + Math.sin(this.runTime * 8) * 2, this.x - 8, top + 19);
-      context.stroke();
-
-      if (!crouching && this.isGrounded) {
-        this.drawLeg(context, this.x + 16, this.groundY - 11, stride);
-        this.drawLeg(context, this.x + 31, this.groundY - 11, -stride);
-      } else {
-        this.drawLeg(context, this.x + 16, this.groundY - (crouching ? 7 : 12), 0);
-        this.drawLeg(context, this.x + 31, this.groundY - (crouching ? 7 : 12), 0);
+      if (this.sprite.complete && this.sprite.naturalWidth > 0) {
+        const frameWidth = this.sprite.naturalWidth / PLAYER_ANIMATION_FRAME_COUNT;
+        const frameIndex = Math.floor(this.runTime / PLAYER_ANIMATION_FRAME_DURATION) % PLAYER_ANIMATION_FRAME_COUNT;
+        context.drawImage(this.sprite, frameIndex * frameWidth, 0, frameWidth, this.sprite.naturalHeight, this.x, top, this.width, bodyHeight);
       }
-
-      context.shadowColor = '#dbe6f4';
-      context.fillStyle = '#11151d';
-      context.strokeStyle = '#f2f7ff';
-      context.lineWidth = 1.8;
-      context.beginPath();
-      if (crouching) {
-        context.roundRect(this.x + 3, top + 7, 42, 20, 7);
-      } else {
-        context.roundRect(this.x + 5, top + 12, 34, 27, 8);
-      }
-      context.fill();
-      context.stroke();
-
-      context.fillStyle = '#e6ebf1';
-      context.strokeStyle = '#99a6b8';
-      context.lineWidth = 1;
-      context.beginPath();
-      context.moveTo(this.x + 26, top + 21);
-      context.lineTo(this.x + 36, top + 17);
-      context.lineTo(this.x + 47, top + 19);
-      context.lineTo(this.x + 43, top + 29);
-      context.lineTo(this.x + 31, top + 30);
-      context.closePath();
-      context.fill();
-      context.stroke();
-
-      context.fillStyle = '#171c26';
-      context.strokeStyle = '#f2f7ff';
-      context.beginPath();
-      context.moveTo(this.x + 27, top + 17);
-      context.lineTo(this.x + 29, top + 2);
-      context.lineTo(this.x + 38, top + 11);
-      context.lineTo(this.x + 44, top + 3);
-      context.lineTo(this.x + 49, top + 17);
-      context.lineTo(this.x + 44, top + 24);
-      context.lineTo(this.x + 31, top + 24);
-      context.closePath();
-      context.fill();
-      context.stroke();
-
-      context.fillStyle = '#f2f7ff';
-      context.shadowColor = COLORS.white;
-      context.shadowBlur = 10;
-      context.fillRect(this.x + 33, top + (crouching ? 12 : 14), 4, 3);
-      context.fillRect(this.x + 42, top + (crouching ? 12 : 14), 4, 3);
-
-      context.fillStyle = '#e9eef5';
-      context.strokeStyle = '#8793a4';
-      context.lineWidth = 1.4;
-      context.beginPath();
-      context.roundRect(this.x + 13, top + (crouching ? 16 : 26), 18, 12, 4);
-      context.fill();
-      context.stroke();
-
-      context.fillStyle = '#121722';
-      context.shadowColor = COLORS.cyan;
-      context.shadowBlur = 14;
-      context.beginPath();
-      context.arc(this.x + 22, top + (crouching ? 22 : 32), 3.5, 0, Math.PI * 2);
-      context.fill();
-
-      context.fillStyle = '#090c12';
-      context.beginPath();
-      context.arc(this.x + 38, top + (crouching ? 15 : 17), 1.2, 0, Math.PI * 2);
-      context.fill();
-      context.strokeStyle = '#e9eef5';
-      context.lineWidth = 1;
-      context.beginPath();
-      context.moveTo(this.x + 42, top + (crouching ? 18 : 20));
-      context.lineTo(this.x + 49, top + (crouching ? 16 : 18));
-      context.moveTo(this.x + 42, top + (crouching ? 20 : 22));
-      context.lineTo(this.x + 49, top + (crouching ? 22 : 24));
-      context.stroke();
-
-      context.shadowBlur = 9;
-      context.shadowColor = COLORS.cyan;
-      context.fillStyle = COLORS.cyan;
-      context.beginPath();
-      context.arc(this.x + 22, top + (crouching ? 22 : 32), 1.4, 0, Math.PI * 2);
-      context.fill();
-
-      context.shadowBlur = 6;
-      context.strokeStyle = '#f2f7ff';
-      context.lineWidth = 1;
-      context.beginPath();
-      context.moveTo(this.x + 31, top + 8);
-      context.lineTo(this.x + 37, top + 13);
-      context.lineTo(this.x + 44, top + 8);
-      context.stroke();
-
-      context.fillStyle = COLORS.cyan;
-      context.shadowColor = COLORS.cyan;
-      context.shadowBlur = 8;
-      context.beginPath();
-      context.arc(this.x + 7, top + (crouching ? 14 : 21), 2, 0, Math.PI * 2);
-      context.fill();
       context.restore();
     }
 
-    drawLeg(context, x, y, swing) {
+    drawPorkLeg(context) {
+      const centerX = this.x + this.width / 2;
+      const plateY = this.groundY - 3;
+
       context.save();
-      context.shadowColor = '#e5ebf4';
-      context.shadowBlur = 8;
-      context.strokeStyle = '#b6c0ce';
-      context.lineWidth = 5;
+      context.fillStyle = 'rgba(0, 0, 0, .32)';
       context.beginPath();
-      context.moveTo(x, y);
-      context.lineTo(x + swing * 0.45, y + 7);
-      context.lineTo(x + swing, y + 10);
+      context.ellipse(centerX, plateY + 1, 34, 7, 0, 0, Math.PI * 2);
+      context.fill();
+
+      context.fillStyle = '#f6f8ff';
+      context.strokeStyle = '#a9bed0';
+      context.lineWidth = 1.5;
+      context.beginPath();
+      context.ellipse(centerX, plateY - 2, 33, 8, 0, 0, Math.PI * 2);
+      context.fill();
       context.stroke();
-      context.strokeStyle = COLORS.white;
-      context.lineWidth = 2;
+      context.strokeStyle = '#d4e1eb';
+      context.lineWidth = 1;
       context.beginPath();
-      context.moveTo(x + swing - 4, y + 11);
-      context.lineTo(x + swing + 4, y + 11);
+      context.ellipse(centerX, plateY - 2, 26, 5, 0, 0, Math.PI * 2);
+      context.stroke();
+
+      context.lineCap = 'round';
+      context.strokeStyle = '#f4e4d5';
+      context.lineWidth = 7;
+      context.beginPath();
+      context.moveTo(centerX - 5, plateY - 12);
+      context.lineTo(centerX - 17, plateY - 19);
+      context.stroke();
+      context.fillStyle = '#fff3e6';
+      context.beginPath();
+      context.arc(centerX - 19, plateY - 21, 4, 0, Math.PI * 2);
+      context.arc(centerX - 15, plateY - 17, 4, 0, Math.PI * 2);
+      context.fill();
+
+      const meat = context.createRadialGradient(centerX + 5, plateY - 20, 2, centerX + 2, plateY - 12, 23);
+      meat.addColorStop(0, '#f6a28c');
+      meat.addColorStop(1, '#a93f52');
+      context.fillStyle = meat;
+      context.strokeStyle = '#7e293d';
+      context.lineWidth = 1.5;
+      context.beginPath();
+      context.moveTo(centerX - 10, plateY - 16);
+      context.bezierCurveTo(centerX - 12, plateY - 26, centerX - 2, plateY - 31, centerX + 7, plateY - 26);
+      context.bezierCurveTo(centerX + 23, plateY - 27, centerX + 27, plateY - 12, centerX + 16, plateY - 7);
+      context.bezierCurveTo(centerX + 9, plateY - 3, centerX - 2, plateY - 6, centerX - 10, plateY - 16);
+      context.closePath();
+      context.fill();
       context.stroke();
       context.restore();
     }
@@ -407,6 +349,7 @@
       this.isCrouching = false;
       this.isGrounded = true;
       this.runTime = 0;
+      this.isDead = false;
     }
   }
 
@@ -528,8 +471,8 @@
       this.velocityY = velocityY;
       this.owner = owner;
       this.color = owner === 'player' ? COLORS.cyan : COLORS.danger;
-      this.width = owner === 'player' ? 13 : 9;
-      this.height = owner === 'player' ? 4 : 6;
+      this.width = owner === 'player' ? 18 : 9;
+      this.height = owner === 'player' ? 13 : 6;
       this.expired = false;
     }
 
@@ -547,6 +490,25 @@
 
     draw(context) {
       context.save();
+      if (this.owner === 'player') {
+        context.fillStyle = '#f28e9f';
+        context.strokeStyle = '#ffd6dd';
+        context.lineWidth = 1;
+        context.shadowColor = COLORS.magenta;
+        context.shadowBlur = 13;
+        context.beginPath();
+        context.ellipse(this.x + this.width / 2, this.y + this.height / 2, this.width * .48, this.height * .46, 0, 0, Math.PI * 2);
+        context.fill();
+        context.stroke();
+        context.shadowBlur = 0;
+        context.fillStyle = '#8a3d4c';
+        context.beginPath();
+        context.ellipse(this.x + this.width * .36, this.y + this.height * .46, 1.5, 2.4, -.2, 0, Math.PI * 2);
+        context.ellipse(this.x + this.width * .66, this.y + this.height * .46, 1.5, 2.4, .2, 0, Math.PI * 2);
+        context.fill();
+        context.restore();
+        return;
+      }
       context.fillStyle = this.color;
       context.shadowColor = this.color;
       context.shadowBlur = 13;
@@ -1119,6 +1081,7 @@
     endRun() {
       if (this.state !== 'running') return;
       this.state = 'gameover';
+      this.player.isDead = true;
       this.score.saveHighScore();
       this.finalScoreElement.textContent = this.score.format(this.score.score);
       this.finalHighScoreElement.textContent = this.score.format(this.score.highScore);
