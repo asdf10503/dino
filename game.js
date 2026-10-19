@@ -893,7 +893,6 @@
       this.startOverlay = document.getElementById('start-overlay');
       this.gameoverOverlay = document.getElementById('gameover-overlay');
       this.finalScoreElement = document.getElementById('final-score');
-      this.finalHighScoreElement = document.getElementById('final-high-score');
       this.particles = new ParticleSystem();
       this.sound = new SoundManager();
       this.player = new Player(this.particles, this.sound);
@@ -1084,7 +1083,6 @@
       this.player.isDead = true;
       this.score.saveHighScore();
       this.finalScoreElement.textContent = this.score.format(this.score.score);
-      this.finalHighScoreElement.textContent = this.score.format(this.score.highScore);
       this.gameoverOverlay.classList.remove('is-hidden');
       this.gameoverOverlay.setAttribute('aria-hidden', 'false');
       this.input.resetSpaceTimer();
