@@ -50,6 +50,11 @@
       this.render();
     }
 
+    add(points) {
+      this.score += points;
+      this.render();
+    }
+
     saveHighScore() {
       const roundedScore = Math.floor(this.score);
       if (roundedScore > this.highScore) {
@@ -126,6 +131,22 @@
   class SoundManager {
     constructor() {
       this.audioContext = null;
+      this.droneExplosion = new Audio('2.mp3');
+      this.playerShot = new Audio('4.mp3');
+      this.keyPressAudio = new Audio('8.mp3');
+      this.jumpAudio = new Audio('jum.mp3');
+      this.coinAudio = new Audio('333.mp3');
+      this.backgroundMusic = new Audio('233.mp3');
+      this.backgroundMusic.loop = true;
+      this.backgroundMusic.volume = 0.35;
+    }
+
+    playAudio(audio) {
+      try {
+        audio.cloneNode().play().catch(() => {});
+      } catch {
+        // Audio is an optional enhancement.
+      }
     }
 
     play(frequency, duration, type = 'sine', volume = 0.035) {
@@ -149,12 +170,19 @@
       }
     }
 
-    jump() { this.play(410, 0.11, 'triangle'); }
-    doubleJump() { this.play(690, 0.16, 'sawtooth', 0.025); }
+    keyPress() { this.playAudio(this.keyPressAudio); }
+    startMusic() { this.backgroundMusic.play().catch(() => {}); }
+    stopMusic() {
+      this.backgroundMusic.pause();
+      this.backgroundMusic.currentTime = 0;
+    }
+    jump() { this.playAudio(this.jumpAudio); }
+    doubleJump() { this.playAudio(this.jumpAudio); }
+    coin() { this.playAudio(this.coinAudio); }
     crash() { this.play(115, 0.32, 'square', 0.045); }
-    shoot() { this.play(780, 0.055, 'square', 0.018); }
+    shoot() { this.playAudio(this.playerShot); }
     enemyShot() { this.play(260, 0.09, 'triangle', 0.018); }
-    explode() { this.play(170, 0.2, 'sawtooth', 0.035); }
+    explode() { this.playAudio(this.droneExplosion); }
   }
 
   class Player {
@@ -463,6 +491,43 @@
     }
   }
 
+  class Coin {
+    constructor(x, y) {
+      this.x = x;
+      this.y = y;
+      this.width = 40;
+      this.height = 27;
+      this.image = new Image();
+      this.image.src = '100.png';
+      this.age = random(0, Math.PI * 2);
+      this.collected = false;
+    }
+
+    get hitbox() {
+      return {
+        x: this.x - this.width / 2,
+        y: this.y - this.height / 2,
+        width: this.width,
+        height: this.height
+      };
+    }
+
+    update(deltaTime, speed) {
+      this.x -= speed * deltaTime;
+      this.age += deltaTime;
+    }
+
+    draw(context) {
+      const bob = Math.sin(this.age * 4) * 3;
+      context.save();
+      context.translate(this.x, this.y + bob);
+      context.shadowColor = '#ffd34e';
+      context.shadowBlur = 12;
+      context.drawImage(this.image, -this.width / 2, -this.height / 2, this.width, this.height);
+      context.restore();
+    }
+  }
+
   class Projectile {
     constructor(x, y, velocityX, velocityY, owner) {
       this.x = x;
@@ -740,6 +805,10 @@
       this.onPointerCancel = () => this.handlePointerCancel();
       this.onContextMenu = event => event.preventDefault();
 
+      document.addEventListener('pointerdown', event => {
+        if (event.target instanceof Element && event.target.closest('button')) this.game.sound.keyPress();
+      }, true);
+
       window.addEventListener('keydown', this.onKeyDown);
       window.addEventListener('keyup', this.onKeyUp);
       window.addEventListener('blur', this.onBlur);
@@ -784,6 +853,7 @@
     }
 
     handleKeyDown(event) {
+      if (!event.repeat) this.game.sound.keyPress();
       if (event.code === 'Space') {
         event.preventDefault();
         if (!event.repeat) this.pressSpace(performance.now());
@@ -900,12 +970,14 @@
       this.score = new ScoreManager(this.scoreElement, this.highScoreElement);
       this.input = new InputManager(this, this.canvas);
       this.obstacles = [];
+      this.coins = [];
       this.projectiles = [];
       this.shootCooldown = 0;
       this.state = 'ready';
       this.elapsed = 0;
       this.speed = 300;
       this.spawnTimer = 1;
+      this.coinSpawnTimer = 2;
       this.lastFrameTime = 0;
       this.frameHandle = 0;
       this.loop = timestamp => this.frame(timestamp);
@@ -915,6 +987,7 @@
     start() {
       this.resetRun();
       this.state = 'running';
+      this.sound.startMusic();
       this.startOverlay.classList.add('is-hidden');
       this.startOverlay.setAttribute('aria-hidden', 'true');
       this.gameoverOverlay.classList.add('is-hidden');
@@ -928,12 +1001,14 @@
     resetRun() {
       this.player.reset();
       this.obstacles.length = 0;
+      this.coins.length = 0;
       this.particles.clear();
       this.background.reset();
       this.score.reset();
       this.elapsed = 0;
       this.speed = 300;
       this.spawnTimer = 1;
+      this.coinSpawnTimer = 2;
       this.lastFrameTime = 0;
       this.input.resetSpaceTimer();
       this.input.keys.clear();
@@ -964,6 +1039,7 @@
       this.shootCooldown = Math.max(0, this.shootCooldown - deltaTime);
       if (this.input.fireHeld && this.shootCooldown <= 0) this.shoot();
       this.updateObstacles(deltaTime);
+      this.updateCoins(deltaTime);
       this.updateProjectiles(deltaTime);
       this.resolveProjectileCollisions();
       if (this.state !== 'running') return;
@@ -996,6 +1072,24 @@
         }
       }
       this.obstacles = this.obstacles.filter(obstacle => !obstacle.destroyed && obstacle.x + obstacle.width > -10);
+    }
+
+    updateCoins(deltaTime) {
+      this.coinSpawnTimer -= deltaTime;
+      if (this.coinSpawnTimer <= 0) {
+        this.coins.push(new Coin(WIDTH + 20, random(GROUND_Y - 116, GROUND_Y - 72)));
+        this.coinSpawnTimer = random(2, 2.8);
+      }
+
+      for (const coin of this.coins) {
+        coin.update(deltaTime, this.speed);
+        if (!CollisionManager.intersects(this.player.hitbox, coin.hitbox)) continue;
+        coin.collected = true;
+        this.score.add(100);
+        this.sound.coin();
+        this.particles.emit(coin.x, coin.y, '#ffd34e', 12, 125);
+      }
+      this.coins = this.coins.filter(coin => !coin.collected && coin.x + coin.width / 2 > 0);
     }
 
     shoot() {
@@ -1080,6 +1174,7 @@
     endRun() {
       if (this.state !== 'running') return;
       this.state = 'gameover';
+      this.sound.stopMusic();
       this.player.isDead = true;
       this.score.saveHighScore();
       this.finalScoreElement.textContent = this.score.format(this.score.score);
@@ -1094,6 +1189,7 @@
       this.context.clearRect(0, 0, WIDTH, HEIGHT);
       this.background.draw(this.context);
       for (const obstacle of this.obstacles) obstacle.draw(this.context);
+      for (const coin of this.coins) coin.draw(this.context);
       for (const projectile of this.projectiles) projectile.draw(this.context);
       this.player.draw(this.context);
       this.particles.draw(this.context);
